@@ -13,7 +13,8 @@ import { APP_CONFIG } from './utils/constants';
 
 export default function App() {
   // 1. Determine Mode (Check URL param OR Debug Flag)
-  const [isAdminMode] = useState(() => {
+  // Changed to standard useState to allow toggling via UI
+  const [isAdminMode, setIsAdminMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return new URLSearchParams(window.location.search).get('mode') === 'admin' || APP_CONFIG.IS_DEBUG_MODE;
     }
@@ -30,6 +31,20 @@ export default function App() {
   // Auth State: Only true if Debug Mode is ON, otherwise must login
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(APP_CONFIG.IS_DEBUG_MODE);
 
+  // Handle mode toggling
+  const toggleAdminMode = () => {
+    const newMode = !isAdminMode;
+    setIsAdminMode(newMode);
+    
+    // Switch tab accordingly
+    if (newMode) {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('dashboard');
+      setIsAdminAuthenticated(false); // Log out when switching back to public
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-w-7xl mx-auto bg-white shadow-xl overflow-hidden md:border-x md:border-slate-200">
       <Header 
@@ -38,6 +53,7 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab}
         isAdminMode={isAdminMode}
+        onToggleAdmin={toggleAdminMode}
       />
       
       <main className="flex-1 overflow-hidden relative">

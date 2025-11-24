@@ -7,9 +7,10 @@ interface HeaderProps {
   activeTab: 'dashboard' | 'map' | 'chat' | 'request' | 'admin';
   setActiveTab: (tab: 'dashboard' | 'map' | 'chat' | 'request' | 'admin') => void;
   isAdminMode: boolean;
+  onToggleAdmin: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, activeTab, setActiveTab, isAdminMode }) => {
+export const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, activeTab, setActiveTab, isAdminMode, onToggleAdmin }) => {
   return (
     <header className={`${isAdminMode ? 'bg-slate-800' : 'bg-blue-600'} text-white shadow-md z-10 shrink-0 transition-colors duration-300`}>
       <div className="px-4 py-4 md:px-6">
@@ -27,16 +28,29 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, activeTab,
               </p>
             </div>
           </div>
-          {activeTab === 'dashboard' && !isAdminMode && (
+          
+          <div className="flex items-center space-x-2">
+            {/* Refresh Button (Only on Dashboard) */}
+            {activeTab === 'dashboard' && !isAdminMode && (
+              <button
+                onClick={onRefresh}
+                disabled={isLoading}
+                className={`p-2 rounded-full hover:bg-white/10 transition-all ${isLoading ? 'animate-spin' : ''}`}
+                aria-label="Refresh data"
+              >
+                <i className="fas fa-sync-alt"></i>
+              </button>
+            )}
+
+            {/* Admin Toggle Button */}
             <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              className={`p-2 rounded-full hover:bg-white/10 transition-all ${isLoading ? 'animate-spin' : ''}`}
-              aria-label="Refresh data"
+              onClick={onToggleAdmin}
+              className={`p-2 rounded-full hover:bg-white/10 transition-colors text-white/50 hover:text-white ${isAdminMode ? 'text-red-400 hover:text-red-300' : ''}`}
+              title={isAdminMode ? "Exit Admin Mode" : "Staff Login"}
             >
-              <i className="fas fa-sync-alt"></i>
+              <i className={`fas ${isAdminMode ? 'fa-sign-out-alt' : 'fa-user-shield'}`}></i>
             </button>
-          )}
+          </div>
         </div>
 
         <nav className="flex space-x-1 overflow-x-auto scrollbar-hide">

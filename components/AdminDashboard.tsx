@@ -61,6 +61,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests, onUpda
       // But RequestForm calls onCancel after submit if isAdmin is true, so we just pass the close logic there.
   };
 
+  const handleCopyCoords = (lat: number, lng: number) => {
+      const text = `${lat},${lng}`;
+      navigator.clipboard.writeText(text)
+        .then(() => alert(`คัดลอกพิกัดแล้ว: ${text}`))
+        .catch(() => alert('Copy Failed'));
+  };
+
   return (
     <div className="h-full flex flex-col bg-slate-100 relative">
       {/* Header Stats */}
@@ -132,25 +139,84 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ requests, onUpda
         {filteredRequests.map(req => {
             const uConf = URGENCY_CONFIG[req.urgency];
             const sConf = STATUS_CONFIG[req.status];
+            const totalPeople = req.people.adults + req.people.children + req.people.elderly;
+
+            // Build Stats Display
+            const peopleDetails = [
+                req.people.adults > 0 ? `${req.people.adults} ผู้ใหญ่.` : null,
+                req.people.children > 0 ? `${req.people.children} เด็ก.` : null,
+                req.people.elderly > 0 ? `${req.people.elderly} สูงวัย.` : null
+            ].filter(Boolean);
+
+            const petDetails = [
+                req.pets.dogs > 0 ? `${req.pets.dogs} หมา` : null,
+                req.pets.cats > 0 ? `${req.pets.cats} แมว` : null,
+                req.pets.others
+            ].filter(Boolean);
+
             return (
                 <div key={req.id} className={`rounded-lg border shadow-sm p-4 ${sConf.bg} ${['completed','cancelled'].includes(req.status) ? 'opacity-60' : ''}`}>
                     <div className="flex justify-between mb-2">
                         <span className={`px-2 py-0.5 rounded text-xs font-bold border ${uConf.bg} ${uConf.text} ${uConf.border}`}>{uConf.label}</span>
                         <span className="text-xs text-slate-400">{formatDate(req.timestamp)}</span>
                     </div>
-                    <h4 className="font-bold text-slate-800">{req.name} <span className="text-xs font-normal text-slate-500">({req.people.adults + req.people.children + req.people.elderly} คน)</span></h4>
-                    <p className="text-sm text-slate-600 line-clamp-2 mt-1">{req.details}</p>
                     
-                    <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 mt-3">
-                        <a href={`tel:${req.phone}`} className="flex items-center text-slate-700 hover:text-white hover:bg-green-600 border border-slate-300 hover:border-green-600 px-3 py-1.5 rounded-lg transition-all text-sm font-bold shadow-sm group">
-                            <i className="fas fa-phone-alt mr-2 text-green-600 group-hover:text-white"></i> 
-                            {req.phone}
-                        </a>
-                        <div className="relative">
+                    <h4 className="font-bold text-slate-800">{req.name}</h4>
+
+                    {/* Detailed Breakdown Badges */}
+                    <div className="flex flex-wrap gap-2 my-2">
+                        {/* People Badge */}
+                        <div className="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 flex items-center text-slate-700">
+                            <i className="fas fa-users text-blue-500 mr-1.5"></i>
+                            <span className="mr-2 font-bold">{totalPeople} คน:</span>
+                            <span className="text-slate-500 text-[10px]">
+                                {peopleDetails.length > 0 ? peopleDetails.join(' / ') : '-'}
+                            </span>
+                        </div>
+
+                        {/* Elderly/Medical Alert */}
+                        {(req.people.elderly > 0 || req.medicalNeeds > 0) && (
+                             <div className="text-xs bg-red-50 border border-red-100 text-red-700 rounded px-2 py-1 flex items-center font-bold animate-pulse">
+                                <i className="fas fa-exclamation-circle mr-1.5"></i>
+                                {req.people.elderly > 0 && `สูงวัย ${req.people.elderly} `}
+                                {req.medicalNeeds > 0 && `ป่วย/พิการ ${req.medicalNeeds}`}
+                            </div>
+                        )}
+
+                        {/* Pets Badge */}
+                        {petDetails.length > 0 && (
+                            <div className="text-xs bg-orange-50 border border-orange-100 text-orange-800 rounded px-2 py-1 flex items-center">
+                                <i className="fas fa-paw mr-1.5"></i>
+                                <span className="text-[10px]">{petDetails.join(' / ')}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="text-sm text-slate-600 mt-2 bg-white p-2 rounded border border-slate-100/50">
+                        <i className="fas fa-info-circle text-slate-300 mr-1"></i> {req.details || 'ไม่มีรายละเอียดเพิ่มเติม'}
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 mt-3 gap-2">
+                        <div className="flex space-x-2 flex-1">
+                            <a href={`tel:${req.phone}`} className="flex items-center justify-center text-slate-700 hover:text-white hover:bg-green-600 border border-slate-300 hover:border-green-600 px-3 py-1.5 rounded-lg transition-all text-sm font-bold shadow-sm group">
+                                <i className="fas fa-phone-alt mr-2 text-green-600 group-hover:text-white"></i> 
+                                <span className="hidden sm:inline">{req.phone}</span>
+                                <span className="sm:hidden">โทร</span>
+                            </a>
+                            <button 
+                                onClick={() => handleCopyCoords(req.location.lat, req.location.lng)}
+                                className="flex items-center justify-center px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+                                title="คัดลอกพิกัด GPS"
+                            >
+                                <i className="fas fa-map-marker-alt"></i>
+                            </button>
+                        </div>
+                        
+                        <div className="relative min-w-[130px]">
                             <select 
                                 value={req.status}
                                 onChange={(e) => onUpdateStatus(req.id, e.target.value as RequestStatus)}
-                                className={`appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border focus:ring-2 ${sConf.color} bg-white border-slate-200 shadow-sm`}
+                                className={`w-full appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border focus:ring-2 ${sConf.color} bg-white border-slate-200 shadow-sm`}
                             >
                                 {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
