@@ -1,0 +1,7 @@
+{
+  "name": "Hat Yai Flood Monitor",
+  "description": "Real-time flood situation monitoring and news for Hat Yai, utilizing Gemini with Google Search Grounding for up-to-date information.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
