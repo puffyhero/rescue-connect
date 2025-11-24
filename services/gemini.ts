@@ -1,11 +1,27 @@
 import { GoogleGenAI } from "@google/genai";
 import { FloodData, GroundingChunk, HelpRequest } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Check if API Key is available
+const apiKey = process.env.API_KEY;
+const isAiAvailable = !!apiKey && apiKey !== 'undefined' && apiKey !== '';
+
+// Initialize only if key exists
+const ai = isAiAvailable ? new GoogleGenAI({ apiKey: apiKey! }) : null;
 
 const MODEL_NAME = 'gemini-2.5-flash';
 
+// Fallback message when AI is offline
+const AI_OFFLINE_MSG = "⚠️ ระบบ AI ไม่พร้อมใช้งาน (Offline Mode) - กรุณาตรวจสอบข้อมูลจากประกาศทางการ";
+
 export const getFloodSituation = async (query: string): Promise<FloodData> => {
+  if (!ai) {
+    console.warn("Gemini API Key missing. Returning fallback data.");
+    return {
+      summary: `### ⚠️ AI Disconnected\n\nระบบไม่สามารถดึงสรุปข่าวล่าสุดได้ในขณะนี้ เนื่องจากไม่มีการเชื่อมต่อกับ Gemini API\n\nอย่างไรก็ตาม **ระบบรับแจ้งเหตุและแผนที่ยังคงทำงานได้ตามปกติ**\n\nกรุณาติดตามข่าวสารจาก:\n- [กรมอุตุนิยมวิทยา](https://www.tmd.go.th/)\n- [เทศบาลนครหาดใหญ่](https://www.hatyaicity.go.th/)`,
+      groundingChunks: []
+    };
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: MODEL_NAME,
@@ -25,11 +41,22 @@ export const getFloodSituation = async (query: string): Promise<FloodData> => {
     };
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw error;
+    // Return safe fallback instead of throwing to prevent UI crash
+    return {
+      summary: "ไม่สามารถเชื่อมต่อกับ AI ได้ในขณะนี้ (API Error) แต่ระบบแผนที่ยังทำงานปกติ",
+      groundingChunks: []
+    };
   }
 };
 
 export const sendChatMessage = async (history: {role: string, parts: {text: string}[]}[], message: string) => {
+   if (!ai) {
+     return {
+         text: "ขออภัยครับ ขณะนี้ระบบ AI ปิดการทำงาน (No API Key) ท่านสามารถดูแผนที่หรือแจ้งเหตุได้ที่แท็บเมนูด้านบนครับ",
+         groundingChunks: []
+     };
+   }
+
    try {
     const chat = ai.chats.create({
         model: MODEL_NAME,
@@ -49,11 +76,18 @@ export const sendChatMessage = async (history: {role: string, parts: {text: stri
 
    } catch (error) {
        console.error("Chat Error:", error);
-       throw error;
+       return {
+           text: "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่ภายหลัง",
+           groundingChunks: []
+       };
    }
 }
 
 export const analyzeRescueRequests = async (requests: HelpRequest[]): Promise<string> => {
+  if (!ai) {
+      return "⚠️ ไม่สามารถวิเคราะห์ข้อมูลได้ (AI Offline) - กรุณาประเมินสถานการณ์จากรายการข้อมูลด้านล่างด้วยตนเอง";
+  }
+
   try {
     // Filter only pending/assigned requests to analyze active situation
     const activeRequests = requests.filter(r => r.status !== 'completed');
